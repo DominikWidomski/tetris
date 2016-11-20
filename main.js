@@ -150,13 +150,13 @@ function draw() {
 function drawMatrix(matrix, offset) {
 	const colors = [
 		null,
-		'red',
-		'blue',
-		'violet',
-		'green',
-		'purple',
-		'orange',
-		'pink'
+		'#E84855',
+		'#FFFD82',
+		'#524D66',
+		'#1B998B',
+		'#AA3E98',
+		'#FF7F11',
+		'#EF767A'
 	];
 
 	matrix.forEach((row, y) => {
