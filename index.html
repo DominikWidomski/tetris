@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Tetris</title>
+	<link rel="stylesheet" href="">
+
+	<style>
+		#stats:after {
+			content: '';
+			display: table;
+			clear: both;
+		}
+		#score {
+			float: left;
+		}
+		#timer {
+			float: right;
+		}
+	</style>
+</head>
+<body>
+	<!-- https://www.youtube.com/watch?v=H2aW5V46khA -->
+	<div class="stats">
+		<span id="score"></span>
+		<span id="timer"></span>
+	</div>
+	<div></div>
+	<canvas width="240" height="400"></canvas>
+
+	<script src="main.js"></script>
+</body>
+</html>
