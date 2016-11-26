@@ -3,8 +3,13 @@ const ctx = canvas.getContext('2d');
 
 ctx.scale(20, 20);
 
+/**
+ * Sweep arena for full rows and increment player score
+ *
+ * @return {[type]}
+ */
 function arenaSweep() {
-	let rowCount = 1;
+	let scoreMultiplier = 1;
 
 	outer: for(let y = arena.length - 1; y > 0; --y) {
 		for(let x = 0; x < arena[y].length; ++x) {
@@ -13,13 +18,18 @@ function arenaSweep() {
 			}
 		}
 
+		// Splice out the row and put it in front, reusing it
 		const row = arena.splice(y, 1)[0].fill(0);
 		arena.unshift(row);
 		++y;
 
-		player.score += rowCount * 10;
-		rowCount *= 2;
+		player.score += scoreMultiplier * 10;
+		// Award double points for each multiple filled row
+		scoreMultiplier *= 2;
+		rowsBroken++;
 	}
+
+	updateGameLevel();
 }
 
 // util
@@ -64,10 +74,16 @@ function playerReset() {
 		y: 0
 	}
 
+	// GAME OVER!!!
 	if(collide(arena, player)) {
 		arena.forEach(row => row.fill(0));
 		player.score = 0;
+		level = 0;
+		rowsBroken = 0;
+		dropCounter = 0;
+		dropInterval = baseDropInterval;
 		updateScore();
+		updateGameLevelView();
 	}
 }
 
@@ -200,13 +216,36 @@ function continueGame() {
 
 	document.title = titleTemp;
 	isPaused = false;
-	console.log('continued');
 	requestAnimationFrame(update);
+	updatePauseState();
+}
+
+function updateGameLevel() {
+	const rowsPerLevel = 2;
+
+	level = Math.floor(rowsBroken / rowsPerLevel) + 1;
+
+	updateGameLevelView();
+	dropInterval = calculateDropInterval(baseDropInterval, level);
+}
+
+function updateGameLevelView() {
+	document.querySelector('.js-rows').innerText = rowsBroken;
+	document.querySelector('.js-level').innerText = level;
+}
+
+function calculateDropInterval(baseDropInterval, level) {
+	// how many levels for a time step update
+	const levelsToSpeed = 5;
+	return baseDropInterval * (1 - (level / levelsToSpeed | 0) * 0.2);
 }
 
 let isPaused = false;
+let level = 0;
+let rowsBroken = 0;
 let dropCounter = 0;
-let dropInterval = 1000;
+const baseDropInterval = 1000;
+let dropInterval = baseDropInterval;
 let lastTime = 0;
 
 function update(time = 0) {
@@ -284,9 +323,14 @@ const player = {
 	score: 0
 }
 
-playerReset();
-updateScore();
-update();
+function initGame() {
+	playerReset();
+	updateScore();
+	updateGameLevel();
+	update();
+};
+
+initGame();
 
 function updateScore() {
 	document.querySelector('#score').innerHTML = player.score;

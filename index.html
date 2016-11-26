@@ -11,11 +11,11 @@
 			background: #cbefff;
 			margin: 0;
 			padding: 0;
+			font-family: "arcadeclassicregular", monospace;
+			text-align: center;
 		}
 		.stats {
-			font-family: "arcadeclassicregular", monospace;
 			font-size: 32px;
-			text-align: center;
 			padding: 10px 0;
 		}
 		.stats:after {
@@ -23,17 +23,52 @@
 			display: table;
 			clear: both;
 		}
-		/*#score {
-			float: left;
-		}*/
 		#timer {
 			float: right;
 		}
 		canvas {
-			margin: 0 auto;
+			margin: 10px auto;
 			display: block;
 			border-radius: 4px;
 			box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
+		}
+		button {
+			background: none;
+			border: none;
+			font-family: "arcadeclassicregular", monospace;	
+		}
+
+		.playarea {
+			position: relative;
+		}
+
+		@keyframes blink {
+			0% {
+				opacity: 1;
+			}
+			50% {
+				opacity: 0;
+			}
+		}
+
+		.overlay {
+			display: none;
+			position: absolute;
+			font-size: 40px;
+			text-align: center;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			color: #EEE;
+			line-height: 400px;
+			background: rgba(0, 0, 0, 0.4);
+		}
+		.overlay-text {
+			animation: blink 1s infinite;
+		}
+		.is-paused .overlay {
+			display: block;
 		}
 	</style>
 </head>
@@ -41,10 +76,20 @@
 	<!-- https://www.youtube.com/watch?v=H2aW5V46khA -->
 	<div class="stats">
 		<span id="score"></span>
-		<span id="timer"></span>
+		<span id="level" style="float: right;">
+			<div>Rows: <span class="js-rows"></span></div>
+			<div>Level: <span class="js-level"></span></div>
+		</span>
+	</div>
+	
+	<div class="playarea">
+		<canvas width="240" height="400"></canvas>
+		<div class="overlay">
+			<span class="overlay-text">PAUSED</span>
+		</div>
 	</div>
 
-	<canvas width="240" height="400"></canvas>
+	<button class='js-pause'>Pause</button>
 
 	<script src="main.js"></script>
 </body>

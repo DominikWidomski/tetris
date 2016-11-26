@@ -4,6 +4,8 @@ Simple tetris game implementation. Nothing fancy, just the mechanics at the mome
 
 ## Outstanding mechanics
 
+- [x] Slam block down (down key, puts block down)
+- [x] Increasing game speed with breaking blocks
 - Show next block
 
 ## Enhancements
