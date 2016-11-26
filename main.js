@@ -97,6 +97,10 @@ function slamDown() {
 		player.pos.y++;
 	}
 
+	// @NOTE: annoying and counterintuitive.
+	// Need to move up again because I only check if it collides after it's been moved
+	// Which is correct but feels that the responsibility is in the wrong place.
+	player.pos.y--;
 	merge(arena, player);
 	arenaSweep();
 	updateScore();
