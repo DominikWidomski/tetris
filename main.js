@@ -175,6 +175,7 @@ function pauseGame() {
 	document.title = titleTemp + ' - PAUSED';
 	isPaused = true;
 	console.log('paused');
+	updatePauseState();
 }
 
 function continueGame() {
@@ -193,37 +194,27 @@ let dropInterval = 100;
 let lastTime = 0;
 
 function update(time = 0) {
-	if(isPaused) return;
 	const deltaTime = time - lastTime;
 	lastTime = time;
+	
+	// so... should I still requestAnimationFrame even if it's paused?
+	// otherwise we don't run this to keep the clock ticking
+	// and I get big time deltas anyway
+	if(isPaused) return;
 
 	dropCounter += deltaTime;
 	if(dropCounter > dropInterval) {
 		playerDown();
-		dropCounter -= dropInterval;
+		// if I set this to 0 it doesn't do the same...
+		// which is not exactly accurate still then.
+		// dropCounter -= dropInterval;
+		dropCounter = 0;
 	}
 
 	draw();
 
 	requestAnimationFrame(update);
 }
-
-document.addEventListener('keydown', event => {
-	const keyCode = event.keyCode;
-
-	if(keyCode === 39) {
-		playerMove(1)
-	} else if(keyCode === 37) {
-		playerMove(-1)
-	} else if(keyCode === 40) {
-		playerDown();
-		dropCounter = 0;
-	} else if(keyCode === 81) {
-		playerRotate(-1);
-	} else if(keyCode === 87) {
-		playerRotate(1);
-	}
-});
 
 function createPiece(type) {
 	const pieces = {
@@ -289,5 +280,38 @@ function updateTimer(time) {
 	document.querySelector('#timer').innerHTML = time;
 }
 
+function updatePauseState() {
+	if(isPaused) {
+		document.body.classList.add('is-paused');
+	} else {
+		document.body.classList.remove('is-paused');
+	}
+}
+
 window.onfocus = continueGame;
 window.onblur = pauseGame;
+
+document.addEventListener('keydown', event => {
+	const keyCode = event.keyCode;
+
+	if(keyCode === 39) {
+		playerMove(1)
+	} else if(keyCode === 37) {
+		playerMove(-1)
+	} else if(keyCode === 40) {
+		playerDown();
+		dropCounter = 0;
+	} else if(keyCode === 81) {
+		playerRotate(-1);
+	} else if(keyCode === 87 || keyCode === 38) {
+		playerRotate(1);
+	}
+});
+
+document.querySelector('.js-pause').addEventListener('click', () => {
+	if(isPaused) {
+		continueGame();
+	} else {
+		pauseGame();
+	}
+});
