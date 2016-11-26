@@ -91,6 +91,18 @@ function playerDown() {
 	}
 }
 
+// @TODO: Would like a "cooler" (smarter) implementation of this
+function slamDown() {
+	while(!collide(arena, player)) {
+		player.pos.y++;
+	}
+
+	merge(arena, player);
+	arenaSweep();
+	updateScore();
+	playerReset();
+}
+
 // @TODO: Guy in tutorial did this nudge thing
 // to avoid rotating into a wall
 // Consider doing that.
@@ -305,6 +317,9 @@ document.addEventListener('keydown', event => {
 		playerRotate(-1);
 	} else if(keyCode === 87 || keyCode === 38) {
 		playerRotate(1);
+	} else if(keyCode === 32) {
+		slamDown();
+		dropCounter = 0;
 	}
 });
 
