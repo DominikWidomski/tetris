@@ -202,7 +202,7 @@ function continueGame() {
 
 let isPaused = false;
 let dropCounter = 0;
-let dropInterval = 100;
+let dropInterval = 1000;
 let lastTime = 0;
 
 function update(time = 0) {
