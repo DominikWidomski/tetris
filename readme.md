@@ -6,7 +6,7 @@ Simple tetris game implementation. Nothing fancy, just the mechanics at the mome
 
 - [x] Slam block down (down key, puts block down)
 - [x] Increasing game speed with breaking blocks
-- Show next block
+- [x] Show next block
 
 ## Enhancements
 

@@ -1,10 +1,19 @@
-const canvas = document.querySelector('canvas');
-const ctx = canvas.getContext('2d');
+const playarea = document.querySelector('.js-playarea');
+const playCtx = playarea.getContext('2d');
 
-ctx.scale(20, 20);
+const previewCanvas = document.querySelector('.js-block-preview');
+const previewCtx = previewCanvas.getContext('2d');
+
+// Scaling the context, considering the initial canvas size of 240x400
+// gives the playable area of 12 columns and 20 rows, as shown below
+// when creating the `arena` matrix
+const scale = 20;
+// playCtx.scale(scale, scale);
+// previewCtx.scale(scale, scale);
 
 /**
  * Sweep arena for full rows and increment player score
+ * Also clear full rows and unshift new them
  *
  * @return {[type]}
  */
@@ -64,10 +73,38 @@ function collide(arena, player) {
 	return false;
 }
 
+function showNextBlock(block) {
+	// console.log('===========');
+	// console.log('Next Block:');
+	// for(let y = 0; y < block.length; ++y) {
+	// 	const out = y + block[y].map(val => {
+	// 		return `%c[${val}]`;
+	// 	}).join('');
+
+	// 	const style = block[y].map(val => {
+	// 		return `background: ${val > 0 ? 'red' : 'white'}`;
+	// 	});
+
+	// 	console.log(out, ...style);
+	// }
+
+	previewCtx.fillStyle = '#000';
+	previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+	drawMatrix(previewCtx, block, {
+		x: 0,
+		y: 0
+	});
+}
+
+let nextBlock = null;
+
 function playerReset() {
 	const pieces = 'ILJOTSZ';
 
-	player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+	player.matrix = nextBlock || createPiece(pieces[pieces.length * Math.random() | 0]);
+	nextBlock = createPiece(pieces[pieces.length * Math.random() | 0]);
+	showNextBlock(nextBlock);
 
 	player.pos = {
 		x: (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0),
@@ -172,14 +209,21 @@ function merge(arena, player) {
 }
 
 function draw() {
-	ctx.fillStyle = '#000';
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	playCtx.fillStyle = '#000';
+	playCtx.fillRect(0, 0, playarea.width, playarea.height);
 
-	drawMatrix(arena, {x: 0, y: 0});
-	drawMatrix(player.matrix, player.pos);
+	drawMatrix(playCtx, arena, {x: 0, y: 0});
+	drawMatrix(playCtx, player.matrix, player.pos);
 }
 
-function drawMatrix(matrix, offset) {
+/**
+ * Draw matrix using the specified context, with specified offset
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {int[][]} matrix
+ * @param {Object} offset
+ */
+function drawMatrix(ctx, matrix, offset) {
 	const colors = [
 		null,
 		'#E84855',
@@ -191,11 +235,16 @@ function drawMatrix(matrix, offset) {
 		'#EF767A'
 	];
 
+	const blockScale = 20;
+
 	matrix.forEach((row, y) => {
 		row.forEach((value, x) => {
 			if(value !== 0) {
 				ctx.fillStyle = colors[value];
-				ctx.fillRect(x + offset.x, y + offset.y, 1, 1);
+				ctx.fillRect(x * blockScale + offset.x * blockScale,
+								 y * blockScale + offset.y * blockScale,
+								 blockScale,
+								 blockScale);
 			}
 		});
 	});
