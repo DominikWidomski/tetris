@@ -9,6 +9,9 @@ Simple tetris game implementation. Nothing fancy, just the mechanics at the mome
 - [x] Show next block
 
 ## Enhancements
+	
+- [x] Highlight the path of the block below, where it will end up
+- Animations & effects for blocks falling, breaking etc.
 
 - highlight the path of the block below, where it will end up
 - Animations & effects for blocks falling, breaking etc.

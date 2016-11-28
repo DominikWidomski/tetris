@@ -91,10 +91,7 @@ function showNextBlock(block) {
 	previewCtx.fillStyle = '#000';
 	previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
 
-	drawMatrix(previewCtx, block, {
-		x: 0,
-		y: 0
-	});
+	drawMatrix(previewCtx, block, {x: 0, y: 0});
 }
 
 let nextBlock = null;
@@ -212,6 +209,30 @@ function draw() {
 	playCtx.fillStyle = '#000';
 	playCtx.fillRect(0, 0, playarea.width, playarea.height);
 
+	window.path = [
+		[0, 0, 0]
+	];
+
+	const m = player.matrix;
+
+	// actually... here I just need to figure out if there's a bit of a block in the X
+	// and draw a line below it that's equivalent to playarea.height - bit.y
+	// loop over the block and evaluate its X coordinates, if they're > 0
+	for(let y = 0; y < m.length; ++y) {
+		for(let x = 0; x < m[y].length; ++x) {
+			if(m[y][x] > 0) {
+				path[y][x] = 9;
+			}
+		}
+		path.push(path.slice(-1)[0].slice());
+	}
+
+	let filler = (playarea.height / scale) - m.length - player.pos.y - 1;
+	while(filler--){
+		path.push(path.slice(-1)[0].slice());
+	}
+
+	drawMatrix(playCtx, path, player.pos);
 	drawMatrix(playCtx, arena, {x: 0, y: 0});
 	drawMatrix(playCtx, player.matrix, player.pos);
 }
@@ -232,7 +253,9 @@ function drawMatrix(ctx, matrix, offset) {
 		'#1B998B',
 		'#AA3E98',
 		'#FF7F11',
-		'#EF767A'
+		'#EF767A',
+		'',
+		'#222222'
 	];
 
 	const blockScale = 20;
