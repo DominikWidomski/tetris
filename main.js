@@ -209,7 +209,7 @@ function draw() {
 	playCtx.fillStyle = '#000';
 	playCtx.fillRect(0, 0, playarea.width, playarea.height);
 
-	window.path = [
+	const path = [
 		[0, 0, 0]
 	];
 
@@ -228,8 +228,9 @@ function draw() {
 	}
 
 	let filler = (playarea.height / scale) - m.length - player.pos.y - 1;
-	while(filler--){
+	while(filler > 0){
 		path.push(path.slice(-1)[0].slice());
+		--filler;
 	}
 
 	drawMatrix(playCtx, path, player.pos);
