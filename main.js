@@ -1,3 +1,7 @@
+"use strict";
+
+require("babel-polyfill");
+
 const playarea = document.querySelector('.js-playarea');
 const playCtx = playarea.getContext('2d');
 
@@ -121,7 +125,13 @@ function playerReset() {
 	}
 }
 
+let clearShadowTimeout = undefined;
+
 function playerMove(dir) {
+	playerShadows.push({x: player.pos.x, y: player.pos.y});
+
+	clearShadowTimeout = setTimeout(() => playerShadows.shift(), 400);
+
 	player.pos.x += dir;
 
 	if(collide(arena, player)) {
@@ -205,6 +215,18 @@ function merge(arena, player) {
 	});
 }
 
+function hexToRGBA(hex) {
+	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	
+	if(!result) {
+		return hex;
+	}
+
+	const comps = result.slice(1).map(comp => parseInt(comp, 16));
+	comps[3] = comps[3] / 255;
+    return `rgba(${comps.join(', ')})`;
+}
+
 function draw() {
 	playCtx.fillStyle = '#000';
 	playCtx.fillRect(0, 0, playarea.width, playarea.height);
@@ -235,6 +257,16 @@ function draw() {
 
 	drawMatrix(playCtx, path, player.pos);
 	drawMatrix(playCtx, arena, {x: 0, y: 0});
+	if(playerShadows.length) {
+		playerShadows.forEach(shadowPosition => {
+			// @TODO: This will still draw current player shape
+			// so it can draw new shape in place of the old shadow
+			// Also since it uses player's matrix, uses same rotation
+			drawMatrix(playCtx, player.matrix, shadowPosition, {
+				opacity: '99',
+			});
+		});
+	}
 	drawMatrix(playCtx, player.matrix, player.pos);
 }
 
@@ -245,7 +277,7 @@ function draw() {
  * @param {int[][]} matrix
  * @param {Object} offset
  */
-function drawMatrix(ctx, matrix, offset) {
+function drawMatrix(ctx, matrix, offset, options = {}) {
 	const colors = [
 		null,
 		'#E84855',
@@ -264,7 +296,7 @@ function drawMatrix(ctx, matrix, offset) {
 	matrix.forEach((row, y) => {
 		row.forEach((value, x) => {
 			if(value !== 0) {
-				ctx.fillStyle = colors[value];
+				ctx.fillStyle = hexToRGBA(colors[value] + (options.opacity || ''));
 				ctx.fillRect(x * blockScale + offset.x * blockScale,
 								 y * blockScale + offset.y * blockScale,
 								 blockScale,
@@ -389,6 +421,8 @@ function createPiece(type) {
 // @TODO: Rename to board?
 let arena = createMatrix(12, 20);
 //let background = createMatrix(12, 20, 1);
+
+let playerShadows = [];
 
 const player = {
 	pos: {x: 0, y: 0},
