@@ -2,6 +2,7 @@
 
 require("babel-polyfill");
 
+// @TODO: rename to playCanvas
 const playarea = document.querySelector('.js-playarea');
 const playCtx = playarea.getContext('2d');
 
@@ -15,14 +16,38 @@ const scale = 20;
 // playCtx.scale(scale, scale);
 // previewCtx.scale(scale, scale);
 
+class Animation {
+	constructor(duration = 0) {
+		this.startTime = performance.now();
+		this.animTime = 0;
+		this.duration = duration;
+		this.stepFunc = undefined;
+		this.finished = false;
+	}
+
+	step(deltaTime) {
+		console.log('ANIMATION::STEP', deltaTime);
+		this.animTime += deltaTime;
+
+		if(this.animTime <= this.duration) {
+			this.stepFunc.call(this, this.animTime / this.duration, this.animTime, deltaTime);
+		} else {
+			this.finished = true;
+		}
+	}
+}
+
+const animations = [];
+
 /**
  * Sweep arena for full rows and increment player score
  * Also clear full rows and unshift new them
  *
- * @return {[type]}
+ * @return {int} number of rows broken
  */
 function arenaSweep() {
 	let scoreMultiplier = 1;
+	let lastRowsBroken = 0;
 
 	outer: for(let y = arena.length - 1; y > 0; --y) {
 		for(let x = 0; x < arena[y].length; ++x) {
@@ -34,15 +59,52 @@ function arenaSweep() {
 		// Splice out the row and put it in front, reusing it
 		const row = arena.splice(y, 1)[0].fill(0);
 		arena.unshift(row);
+		// @TODO: Does this cause iteration over a row twice?
 		++y;
+
+		const anim = new Animation(1000);
+
+		/*
+		const thisY = y - 2;
+		anim.stepFunc = (progress, animTime, deltaTime) => {
+			const blockScale = 20;
+
+			console.log(progress, thisY);
+			playCtx.fillStyle = `rgba(255, 255, 255, ${1 - progress})`;
+			playCtx.fillRect(0,
+				thisY * blockScale,
+				blockScale * 12,
+				blockScale);
+		};
+		//*/
+
+		//*
+		anim.stepFunc = (thisY => {
+			return function(progress, animTime, deltaTime) {
+				const blockScale = 20;
+
+				console.log(progress, thisY);
+				playCtx.fillStyle = `rgba(255, 255, 255, ${1 - progress})`;
+				playCtx.fillRect(0,
+					thisY * blockScale,
+					blockScale * 12,
+					blockScale);
+			};
+		})(y - 2);
+		//*/
+
+		animations.push(anim);
 
 		player.score += scoreMultiplier * 10;
 		// Award double points for each multiple filled row
 		scoreMultiplier *= 2;
 		rowsBroken++;
+		lastRowsBroken++;
 	}
 
 	updateGameLevel();
+
+	return lastRowsBroken;
 }
 
 // util
@@ -101,6 +163,7 @@ function showNextBlock(block) {
 let nextBlock = null;
 
 function playerReset() {
+	console.log('CALLED: playerReset');
 	const pieces = 'ILJOTSZ';
 
 	player.matrix = nextBlock || createPiece(pieces[pieces.length * Math.random() | 0]);
@@ -147,12 +210,39 @@ function playerDown() {
 		merge(arena, player);
 		arenaSweep();
 		updateScore();
+		console.log('CALLED: playerDown');
 		playerReset();
 	}
 }
 
+// @TODO: Track blocking actions?
+let gameplayWaiting = false;
+
+/**
+ * Pause the game for some time
+ * 
+ * @param {int}
+ *
+ * @return {Promise}
+ */
+function delay(ms = 0) {
+	// const delayLogging = setInterval(function() {
+	// 	// console.log('DELAYING');
+	// }, 60);
+
+	gameplayWaiting = true;
+
+	return new Promise(resolve => {
+		setTimeout(function() {
+			gameplayWaiting = false;
+			// clearInterval(delayLogging);
+			resolve()
+		}, ms);
+	});
+}
+
 // @TODO: Would like a "cooler" (smarter) implementation of this
-function slamDown() {
+async function slamDown() {
 	while(!collide(arena, player)) {
 		player.pos.y++;
 	}
@@ -162,9 +252,15 @@ function slamDown() {
 	// Which is correct but feels that the responsibility is in the wrong place.
 	player.pos.y--;
 	merge(arena, player);
-	arenaSweep();
+	const lastRowsBroken = arenaSweep();
 	updateScore();
 	playerReset();
+
+	console.log(`Waiting for ${lastRowsBroken} to break...`);
+	if(lastRowsBroken) {
+		await delay(lastRowsBroken * 1000);
+	}
+	console.log(`... continuing`);
 }
 
 // @TODO: Guy in tutorial did this nudge thing
@@ -215,6 +311,12 @@ function merge(arena, player) {
 	});
 }
 
+/**
+ * Converts hex string to rgba() representation
+ * @param {string} hex
+ *
+ * @return {string}
+ */
 function hexToRGBA(hex) {
 	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 	
@@ -223,11 +325,15 @@ function hexToRGBA(hex) {
 	}
 
 	const comps = result.slice(1).map(comp => parseInt(comp, 16));
+	// Opacity part is a fraction, 0 - 1
 	comps[3] = comps[3] / 255;
     return `rgba(${comps.join(', ')})`;
 }
 
-function draw() {
+/**
+ * Main render method
+ */
+function draw(deltaTime) {
 	playCtx.fillStyle = '#000';
 	playCtx.fillRect(0, 0, playarea.width, playarea.height);
 
@@ -268,6 +374,16 @@ function draw() {
 		});
 	}
 	drawMatrix(playCtx, player.matrix, player.pos);
+
+	// Animations
+	for (var i = animations.length - 1; i >= 0; i--) {
+		const animation = animations[i];
+		if(!animation.finished) {
+			animation.step(deltaTime);
+		} else {
+			animations.splice(i, 1);
+		}
+	}
 }
 
 /**
@@ -321,7 +437,7 @@ function continueGame() {
 
 	document.title = titleTemp;
 	isPaused = false;
-	requestAnimationFrame(update);
+	// requestAnimationFrame(update);
 	updatePauseState();
 }
 
@@ -332,6 +448,10 @@ function updateGameLevel() {
 
 	updateGameLevelView();
 	dropInterval = calculateDropInterval(baseDropInterval, level);
+}
+
+function updateFrameCounterView(count) {
+	document.querySelector('.frame-count').innerText = count;
 }
 
 function updateGameLevelView() {
@@ -352,27 +472,33 @@ let dropCounter = 0;
 const baseDropInterval = 1000;
 let dropInterval = baseDropInterval;
 let lastTime = 0;
+let frameCounter = 0;
 
 function update(time = 0) {
+	updateFrameCounterView(frameCounter = ++frameCounter % 60);
+
 	const deltaTime = time - lastTime;
 	lastTime = time;
 	
 	// so... should I still requestAnimationFrame even if it's paused?
 	// otherwise we don't run this to keep the clock ticking
 	// and I get big time deltas anyway
-	if(isPaused) return;
-
-	dropCounter += deltaTime;
-	if(dropCounter > dropInterval) {
-		playerDown();
-		// if I set this to 0 it doesn't do the same...
-		// which is not exactly accurate still then.
-		// dropCounter -= dropInterval;
-		dropCounter = 0;
+	if(isPaused || gameplayWaiting) {
+		// waiting
+	// Game loop happens here
+	} else {
+		dropCounter += deltaTime;
+		if(dropCounter > dropInterval) {
+			playerDown();
+			// if I set this to 0 it doesn't do the same...
+			// which is not exactly accurate still then.
+			// dropCounter -= dropInterval;
+			dropCounter = 0;
+		}
 	}
 
-	draw();
-
+	// Render and request next frame anyway
+	draw(deltaTime);
 	requestAnimationFrame(update);
 }
 
@@ -431,6 +557,9 @@ const player = {
 }
 
 function initGame() {
+	arena[19] = arena[19].fill(1);
+	arena[18] = arena[18].fill(1);
+
 	playerReset();
 	updateScore();
 	updateGameLevel();
