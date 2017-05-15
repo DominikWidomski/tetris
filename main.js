@@ -49,6 +49,8 @@ function arenaSweep() {
 	let scoreMultiplier = 1;
 	let lastRowsBroken = 0;
 
+	let shifted = 0;
+
 	outer: for(let y = arena.length - 1; y > 0; --y) {
 		for(let x = 0; x < arena[y].length; ++x) {
 			if(arena[y][x] === 0) {
@@ -61,25 +63,11 @@ function arenaSweep() {
 		arena.unshift(row);
 		// @TODO: Does this cause iteration over a row twice?
 		++y;
+		++shifted;
 
 		const anim = new Animation(1000);
 
-		/*
-		const thisY = y - 2;
-		anim.stepFunc = (progress, animTime, deltaTime) => {
-			const blockScale = 20;
-
-			console.log(progress, thisY);
-			playCtx.fillStyle = `rgba(255, 255, 255, ${1 - progress})`;
-			playCtx.fillRect(0,
-				thisY * blockScale,
-				blockScale * 12,
-				blockScale);
-		};
-		//*/
-
-		//*
-		anim.stepFunc = (thisY => {
+		anim.stepFunc = (function(thisY) {
 			return function(progress, animTime, deltaTime) {
 				const blockScale = 20;
 
@@ -90,8 +78,7 @@ function arenaSweep() {
 					blockScale * 12,
 					blockScale);
 			};
-		})(y - 2);
-		//*/
+		})(y - shifted);
 
 		animations.push(anim);
 
