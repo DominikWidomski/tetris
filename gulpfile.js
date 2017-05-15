@@ -49,7 +49,7 @@ gulp.task('js', function() {
                 resolveLoader: {
                     modulesDirectories: [ path.join(__dirname, '/node_modules') ]
                 },
-                devtool: gutil.env.dev ? 'eval' : ''
+                devtool: gutil.env.dev ? 'eval-source-map' : ''
             }))
             .on('error', handleError('js'))
             .pipe(gutil.env.dev ? plugins.sourcemaps.write() : gutil.noop())
@@ -61,13 +61,14 @@ gulp.task('js', function() {
     return es.merge.apply(null, tasks);
 });
 
+gulp.task('build', ['js']);
 
 /**
  * gulp watch
  *
  * Run build tasks and watch for subsequent changes.
  */
-gulp.task('watch', function() {
+gulp.task('watch', ['build'], function() {
     gulp.watch('./main.js', ['js']);
 });
 
