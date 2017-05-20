@@ -1,6 +1,8 @@
 "use strict";
 
 require("babel-polyfill");
+import ParticleEmitter from './src/js/components/particleEmitter';
+import ParticleSystem from './src/js/components/particleSystem';
 
 // @TODO: rename to playCanvas
 const playarea = document.querySelector('.js-playarea');
@@ -26,7 +28,6 @@ class Animation {
 	}
 
 	step(deltaTime) {
-		console.log('ANIMATION::STEP', deltaTime);
 		this.animTime += deltaTime;
 
 		if(this.animTime <= this.duration) {
@@ -71,7 +72,6 @@ function arenaSweep() {
 			return function(progress, animTime, deltaTime) {
 				const blockScale = 20;
 
-				console.log(progress, thisY);
 				playCtx.fillStyle = `rgba(255, 255, 255, ${1 - progress})`;
 				playCtx.fillRect(0,
 					thisY * blockScale,
@@ -149,11 +149,18 @@ function showNextBlock(block) {
 
 let nextBlock = null;
 
+function playerInit() { 
+	// @TODO: atm PS origin is updated in update
+	player.particleSystem = new ParticleSystem(playCtx);
+}
+
 function playerReset() {
 	console.log('CALLED: playerReset');
 	const pieces = 'ILJOTSZ';
 
 	player.matrix = nextBlock || createPiece(pieces[pieces.length * Math.random() | 0]);
+	resolveEmitterAreas();
+
 	nextBlock = createPiece(pieces[pieces.length * Math.random() | 0]);
 	showNextBlock(nextBlock);
 
@@ -250,6 +257,42 @@ async function slamDown() {
 	console.log(`... continuing`);
 }
 
+function getEmitterArea(matrix) {
+	const positions = [];
+
+	for (let y = 0; y < matrix.length; ++y) {
+		for (let x = 0; x < matrix[y].length; ++x) {
+			if (matrix[y][x] > 0 && (positions[x] === undefined || positions[x] >= y)) {
+				positions[x] = y;
+			}
+		}
+	}
+
+	return positions;
+}
+
+// @TODO: this is kinda an event firing when player's matrix is updates
+// should redo it into actual events etc.
+function resolveEmitterAreas() {
+	const areas = getEmitterArea(player.matrix);
+	player.particleSystem.clearEmitters()
+
+	for (let [x, y] of areas.entries()) {
+		if(x === undefined) {
+			continue;
+		}
+
+		const emitter = new ParticleEmitter(
+			x * scale, 	// offsetX
+			y * scale, 	// offsetY
+			scale, 		// width
+			scale 		// height
+		);
+
+		player.particleSystem.addEmitter(emitter);
+	}
+}
+
 // @TODO: Guy in tutorial did this nudge thing
 // to avoid rotating into a wall
 // Consider doing that.
@@ -258,6 +301,8 @@ function playerRotate(dir) {
 	if(collide(arena, player)) {
 		rotateMatrix(player.matrix, -dir);
 	}
+
+	resolveEmitterAreas();
 }
 
 function rotateMatrix(matrix, dir) {
@@ -362,14 +407,19 @@ function draw(deltaTime) {
 	}
 	drawMatrix(playCtx, player.matrix, player.pos);
 
-	// Animations
-	for (var i = animations.length - 1; i >= 0; i--) {
-		const animation = animations[i];
-		if(!animation.finished) {
-			animation.step(deltaTime);
-		} else {
-			animations.splice(i, 1);
+	if(!isPaused) {
+		// Animations
+		for (var i = animations.length - 1; i >= 0; i--) {
+			const animation = animations[i];
+			if(!animation.finished) {
+				animation.step(deltaTime);
+			} else {
+				animations.splice(i, 1);
+			}
 		}
+
+		player.particleSystem.update(deltaTime);
+		player.particleSystem.render(deltaTime);
 	}
 }
 
@@ -463,6 +513,7 @@ let frameCounter = 0;
 
 function update(time = 0) {
 	updateFrameCounterView(frameCounter = ++frameCounter % 60);
+	updateFrameCounterView(player.particleSystem.particles.size);
 
 	const deltaTime = time - lastTime;
 	lastTime = time;
@@ -482,6 +533,8 @@ function update(time = 0) {
 			// dropCounter -= dropInterval;
 			dropCounter = 0;
 		}
+
+		player.particleSystem.setOrigin(player.pos.x * 20, player.pos.y * 20);
 	}
 
 	// Render and request next frame anyway
@@ -537,16 +590,22 @@ let arena = createMatrix(12, 20);
 
 let playerShadows = [];
 
+const gameObjects = window.gameObjects = new Set();
+
 const player = {
 	pos: {x: 0, y: 0},
 	matrix: null,
-	score: 0
+	score: 0,
+	particleSystem: undefined
 }
+
+gameObjects.add(player);
 
 function initGame() {
 	arena[19] = arena[19].fill(1);
 	arena[18] = arena[18].fill(1);
 
+	playerInit();
 	playerReset();
 	updateScore();
 	updateGameLevel();
