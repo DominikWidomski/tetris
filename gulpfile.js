@@ -38,7 +38,7 @@ gulp.task('js', function() {
                         {
                             test: /.*\.js$/,
                             loader: 'babel-loader',
-                            includes: [ 'resources/', 'frontend-core/' ],
+                            includes: [ 'src/' ],
                             query: {
                                 plugins: ['syntax-async-functions', 'transform-regenerator'],
                                 presets: ['es2015']
@@ -69,6 +69,7 @@ gulp.task('build', ['js']);
  * Run build tasks and watch for subsequent changes.
  */
 gulp.task('watch', ['build'], function() {
+    gulp.watch('./src/js/**/*.js', ['js']);
     gulp.watch('./main.js', ['js']);
 });
 
